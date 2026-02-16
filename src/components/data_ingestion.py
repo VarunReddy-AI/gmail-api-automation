@@ -1,7 +1,7 @@
 import os
 import sys
-from src.exception import CustomException
 from src.logger import logging
+from src.exception import CustomException
 
 import pandas as pd
 from dataclasses import dataclass
@@ -19,9 +19,11 @@ class DataIngestion:
         self.ingestion_config = DataIngestionConfig()
 
     def initiate_data_ingestion(self):
+
         logging.info("entered the data ingestion method or component")
         try:
-            df = pd.read_csv("notebook\data\label.csv")
+            df = pd.read_csv("notebook/data/label.csv")
+            df = df[["text", "label"]]
             logging.info("Read the dataset as dataframe")
 
             os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok=True)
@@ -45,3 +47,18 @@ class DataIngestion:
         except Exception as e:
             raise CustomException(e,sys)
 
+
+if __name__=="__main__":
+    print("RUNNING:", __file__)
+    logging.info("Starting data ingestion")
+
+
+    try:
+        obj = DataIngestion()
+        train_path, test_path = obj.initiate_data_ingestion()
+        logging.info(f"Train data saved at: {train_path}")
+        logging.info(f"Test data saved at: {test_path}")
+
+    except Exception as e:
+        logging.error("Error occurred in data ingestion")
+        raise CustomException(e, sys)
