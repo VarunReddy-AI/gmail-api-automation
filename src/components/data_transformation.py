@@ -4,90 +4,119 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import LabelEncoder
 
 from src.exception import CustomException
 from src.logger import logging
+from src.utils import clean_text, get_vectorizer, save_object
 
-from src.utils import clean_text
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('artifacts','preprocessor.pkl')
+    preprocessor_obj_file_path: str = os.path.join(
+        "artifacts", "preprocessor.pkl"
+    )
+    label_encoder_file_path: str = os.path.join(
+        "artifacts", "label_encoder.pkl"
+    )
 
 
 class DataTransformation:
     def __init__(self):
-        self.data_transformation_config = DataTransformationConfig
+        self.data_transformation_config = DataTransformationConfig()
 
-        def get_data_transform_object(self):
-            try:
-                
-                text_pipeline = Pipeline(
-                    steps=[
-                        ("clean_text", clean_text()),
-                        ("tfidf", TfidfVectorizer(
-                            max_features=10000,
-                            ngram_range=(1,2),
-                            min_df=2,
-                            max_df=0.9,
-                            sublinear_tf=True
-                        ))
-                    ]
-                )
+    def get_data_transformer_object(self):
+        try:
+            text_pipeline = Pipeline(
+                steps=[
+                    ("clean_text", clean_text()),
+                    ("tfidf", get_vectorizer()),
+                ]
+            )
 
-                logging.info("Cleaning text and vectoring")
-                return text_pipeline
+            preprocessor = ColumnTransformer(
+                transformers=[
+                    ("text_pipeline", text_pipeline, "text")
+                ]
+            )
 
-            except Exception as e:
-                raise CustomException(e,sys)
-            
+            logging.info("Text cleaning and vectorization pipeline created")
+            return preprocessor
 
-def initiate_data_transformation(self, train_path, test_path):
-    try:
-        train_df = pd.read_csv(train_path)
-        test_df = pd.read_csv(train_path)
+        except Exception as e:
+            raise CustomException(e, sys)
 
-        logging.info("Read train and test data completed")
+    def initiate_data_transformation(self, train_path, test_path):
+        try:
+            # --------------------------
+            # Read Data
+            # --------------------------
+            train_df = pd.read_csv(train_path)
+            test_df = pd.read_csv(test_path)
 
-        logging.info("Obtaining preprocessing object")
+            logging.info("Train and test data loaded successfully")
 
-        preprocessor_obj = self.get_data_transformer_object()
+            target_column_name = "label"
 
-        target_column_name = "label"
-        numerical_columns = "text"
+            # --------------------------
+            # Split Features and Target
+            # --------------------------
+            X_train = train_df.drop(columns=[target_column_name])
+            y_train = train_df[target_column_name]
 
-        input_feature_train_df = train_df.drop(columns=[target_column_name], axis=1)
-        target_feature_train_df = train_df[target_column_name]
+            X_test = test_df.drop(columns=[target_column_name])
+            y_test = test_df[target_column_name]
 
-        input_feature_test_df = test_df.drop(columns=[target_column_name], axis=1)
-        target_feature_test_df = test_df[target_column_name]
+            # --------------------------
+            # Preprocessing Object
+            # --------------------------
+            preprocessor_obj = self.get_data_transformer_object()
 
-        logging.info(f"applying preprocessing object in training and test dataframe")
+            logging.info("Fitting preprocessor on training data only")
 
-        input_feature_train_arr = preprocessor_obj.fit_transform(input_feature_train_df)
-        input_feature_test_arr = preprocessor_obj.transform(input_feature_test_df)
+            # Fit only on TRAIN → prevents leakage
+            X_train_transformed = preprocessor_obj.fit_transform(X_train)
 
-        train_arr = np.c_[
-            input_feature_train_arr, np.array(target_feature_train_df)
-        ]
-        test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
+            # Only transform TEST
+            X_test_transformed = preprocessor_obj.transform(X_test)
 
-        logging.info("saving preprocessing object")
+            # --------------------------
+            # Label Encoding
+            # --------------------------
+            label_encoder = LabelEncoder()
 
-        save_object(
-            file_path = self.data_transformation_config.preprocessor_obj_file_path,
-            obj = preprocessor_obj
-        )
+            y_train_encoded = label_encoder.fit_transform(y_train)
+            y_test_encoded = label_encoder.transform(y_test)
 
-        return (
-            train_arr,
-            test_arr,
-            self.data_transformation_config.preprocessor_obj_file_path,
-        )
-    except Exception as e:
-        raise CustomException(e, sys)
+            # --------------------------
+            # Combine Features + Target
+            # --------------------------
+            train_arr = np.c_[X_train_transformed.toarray(), y_train_encoded]
+            test_arr = np.c_[X_test_transformed.toarray(), y_test_encoded]
+
+            # --------------------------
+            # Save Objects
+            # --------------------------
+            save_object(
+                file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                obj=preprocessor_obj,
+            )
+
+            save_object(
+                file_path=self.data_transformation_config.label_encoder_file_path,
+                obj=label_encoder,
+            )
+
+            logging.info("Preprocessor and label encoder saved successfully")
+
+            return (
+                train_arr,
+                test_arr,
+                self.data_transformation_config.preprocessor_obj_file_path,
+                self.data_transformation_config.label_encoder_file_path,
+            )
+
+        except Exception as e:
+            raise CustomException(e, sys)
