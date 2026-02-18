@@ -10,7 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 
 from src.exception import CustomException
 from src.logger import logging
-from src.utils import clean_text, get_vectorizer, save_object
+from src.utils import CleanTextTransformer, get_vectorizer, save_object
+
 
 
 @dataclass
@@ -30,15 +31,16 @@ class DataTransformation:
     def get_data_transformer_object(self):
         try:
             text_pipeline = Pipeline(
-                steps=[
-                    ("clean_text", clean_text()),
-                    ("tfidf", get_vectorizer()),
-                ]
-            )
+                    steps=[
+                        ("clean_text", CleanTextTransformer()),
+                        ("tfidf", get_vectorizer()),
+                    ]
+)
+
 
             preprocessor = ColumnTransformer(
                 transformers=[
-                    ("text_pipeline", text_pipeline, "text")
+                    ("text_pipeline", text_pipeline, ["text"])
                 ]
             )
 
@@ -55,6 +57,13 @@ class DataTransformation:
             # --------------------------
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
+
+            print("Train DF shape:", train_df.shape)
+            print(train_df.columns)
+            #print(train_df.shape)
+            print(train_df.head())
+
+
 
             logging.info("Train and test data loaded successfully")
 
@@ -82,6 +91,12 @@ class DataTransformation:
             # Only transform TEST
             X_test_transformed = preprocessor_obj.transform(X_test)
 
+            
+            print("X_train_transformed",X_train_transformed.shape)
+            print("X_test_transformed",X_test_transformed.shape)
+            print(type(X_train_transformed))
+
+
             # --------------------------
             # Label Encoding
             # --------------------------
@@ -89,12 +104,21 @@ class DataTransformation:
 
             y_train_encoded = label_encoder.fit_transform(y_train)
             y_test_encoded = label_encoder.transform(y_test)
+            print(y_train_encoded.shape)
 
             # --------------------------
             # Combine Features + Target
             # --------------------------
-            train_arr = np.c_[X_train_transformed.toarray(), y_train_encoded]
-            test_arr = np.c_[X_test_transformed.toarray(), y_test_encoded]
+            X_train_transformed = X_train_transformed.toarray()
+            X_test_transformed = X_test_transformed.toarray()
+
+            y_train_encoded = y_train_encoded.reshape(-1, 1)
+            y_test_encoded = y_test_encoded.reshape(-1, 1)
+
+            train_arr = np.hstack((X_train_transformed, y_train_encoded))
+            test_arr = np.hstack((X_test_transformed, y_test_encoded))
+
+
 
             # --------------------------
             # Save Objects
@@ -110,13 +134,21 @@ class DataTransformation:
             )
 
             logging.info("Preprocessor and label encoder saved successfully")
+            print(y_train_encoded.shape)
+            print(type(y_train_encoded))
+
 
             return (
-                train_arr,
-                test_arr,
+                
+                X_train_transformed,
+                y_train_encoded,
+                X_test_transformed,
+                y_test_encoded,
                 self.data_transformation_config.preprocessor_obj_file_path,
                 self.data_transformation_config.label_encoder_file_path,
+
             )
 
         except Exception as e:
             raise CustomException(e, sys)
+

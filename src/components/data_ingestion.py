@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
 from src.components.data_transformation import DataTransformation, DataTransformationConfig
-#from src.components.model_trainer import ModelTrainerConfig
-#from src.components.model_trainer import ModelTrainer
+from src.components.model_trainer import ModelTrainerConfig
+from src.components.model_trainer import ModelTrainer
 
 @dataclass
 class DataIngestionConfig:
@@ -26,8 +26,15 @@ class DataIngestion:
 
         logging.info("entered the data ingestion method or component")
         try:
-            df = pd.read_csv("notebook/data/label.csv")
+            df = pd.read_csv(r"D:\Desktop/gmail-api-automation/artifacts/training_emails.csv")
+            df2 = pd.read_csv(r"D:\Desktop/gmail-api-automation/artifacts/test_labels_for_evaluation.csv")
+            # Select only IMPORTANT rows from df2
+            #important_df2 = df2[df2['label'] == 'IMPORTANT']
+
+            # Append rows
+            df = pd.concat([df, df2], ignore_index=True)
             df = df[["text", "label"]]
+
             logging.info("Read the dataset as dataframe")
 
             os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok=True)
@@ -38,8 +45,8 @@ class DataIngestion:
 
             train_set, test_set = train_test_split(
                 df, 
-                test_size=0.2, 
-                random_state=42,
+                test_size=0.25, 
+                random_state=39,
                 stratify=df["label"]
                 )
 
@@ -70,7 +77,9 @@ if __name__=="__main__":
         logging.info(f"Test data saved at: {test_data}")
 
         data_transformation = DataTransformation()
-        data_transformation.initiate_data_transformation(train_data, test_data)
+        X_train_transformed,y_train_encoded,X_test_transformed,y_test_encoded,_,_ = data_transformation.initiate_data_transformation(train_data, test_data)
+        modelTrainer = ModelTrainer()
+        print(modelTrainer.initiate_model_trainer(X_train_transformed,y_train_encoded,X_test_transformed,y_test_encoded))
 
     except Exception as e:
         logging.error("Error occurred in data ingestion")
