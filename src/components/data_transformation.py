@@ -20,7 +20,7 @@ class DataTransformationConfig:
         "artifacts", "preprocessor.pkl"
     )
     label_encoder_file_path: str = os.path.join(
-        "artifacts", "label_encoder.pkl"
+        "artifacts", "lable_encoder.pkl"
     )
 
 
@@ -67,7 +67,7 @@ class DataTransformation:
 
             logging.info("Train and test data loaded successfully")
 
-            target_column_name = "label"
+            target_column_name = "lable"
 
             # --------------------------
             # Split Features and Target

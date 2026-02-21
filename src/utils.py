@@ -3,7 +3,7 @@ import os
 import sys
 from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+from datetime import datetime
 import numpy as np 
 import joblib
 import pandas as pd
@@ -128,25 +128,71 @@ def load_object(file_path):
     except Exception as e:
         raise CustomException(e, sys)
 
+import joblib
+from datetime import datetime
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 
-def model_metrics(X_train,X_test,y_train,y_test):
-    model = joblib.load(r"D:\Desktop/gmail-api-automation/artifacts/model.pkl")
+def evaluate_and_log_metrics(X_train, X_test, y_train, y_test, model_path):
+    
+    # Load model
+    model = joblib.load(model_path)
 
-    y_pred = model.predict(X_test)
-    accuracy_test = accuracy_score(y_test, y_pred)
+    # Ensure correct shape
+    y_train = y_train.ravel()
+    y_test = y_test.ravel()
 
-    print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
-    print("Accuracy of test data:", accuracy_test)
-    print("classification report: \n", classification_report(y_test, y_pred))
+    # ---- Test Metrics ----
+    y_pred_test = model.predict(X_test)
+    accuracy_test = accuracy_score(y_test, y_pred_test)
+    test_conf_matrix = confusion_matrix(y_test, y_pred_test)
+    test_report = classification_report(y_test, y_pred_test)
 
+    # ---- Train Metrics ----
     y_pred_train = model.predict(X_train)
     accuracy_train = accuracy_score(y_train, y_pred_train)
-    print("Confusion Matrix:\n", confusion_matrix(y_train, y_pred_train))
-    print("Accuracy of train data: ", accuracy_train) 
-    print("classification report: \n", classification_report(y_train, y_pred_train))
+    train_conf_matrix = confusion_matrix(y_train, y_pred_train)
+    train_report = classification_report(y_train, y_pred_train)
+
+    # Print to console
+    print("Test Confusion Matrix:\n", test_conf_matrix)
+    print("Test Accuracy:", accuracy_test)
+    print("Test Classification Report:\n", test_report)
+
+    print("Train Confusion Matrix:\n", train_conf_matrix)
+    print("Train Accuracy:", accuracy_train)
+    print("Train Classification Report:\n", train_report)
+
+    # ---- Save to Markdown ----
+    metrics_path = r"D:\Desktop/gmail-api-automation/metrics.md"
+
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        f.write("# Model Training Metrics\n\n")
+        f.write(f"**Run Time:** {datetime.now()}\n\n")
+        f.write(f"**Model Path:** {model_path}\n\n")
+
+        f.write("## Test Metrics\n")
+        f.write(f"- Accuracy: {accuracy_test:.4f}\n\n")
+        f.write("### Confusion Matrix\n")
+        f.write("```\n")
+        f.write(str(test_conf_matrix))
+        f.write("\n```\n\n")
+
+        f.write("### Classification Report\n")
+        f.write("```\n")
+        f.write(test_report)
+        f.write("\n```\n\n")
+
+        f.write("## Train Metrics\n")
+        f.write(f"- Accuracy: {accuracy_train:.4f}\n\n")
+        f.write("### Confusion Matrix\n")
+        f.write("```\n")
+        f.write(str(train_conf_matrix))
+        f.write("\n```\n\n")
+
+        f.write("### Classification Report\n")
+        f.write("```\n")
+        f.write(train_report)
+        f.write("\n```\n")
 
     return accuracy_test, accuracy_train
-
-
-

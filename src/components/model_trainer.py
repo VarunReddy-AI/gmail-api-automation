@@ -12,7 +12,7 @@ from sklearn.metrics import precision_score, confusion_matrix, accuracy_score, c
 
 from src.exception import CustomException
 from src.logger import logging
-from src.utils import save_object, evaluate_models, model_metrics
+from src.utils import save_object, evaluate_models, evaluate_and_log_metrics
 
 
 @dataclass
@@ -89,9 +89,11 @@ class ModelTrainer:
                 file_path=self.model_trainer_config.trained_model_file_path,
                 obj=best_model
             )
+
+
             print(f"Best model: {best_model_name}")
             print("Best model score: ",best_model_score)
-            accuracy_train, accuracy_test = model_metrics(X_train,X_test,y_train,y_test)
+            accuracy_train, accuracy_test = evaluate_and_log_metrics(X_train,X_test,y_train,y_test,model_path="artifacts/model.pkl")
             
             logging.info(f"Accuracy of train: {accuracy_train}")
             logging.info(f"Accuracy of test: {accuracy_test}")

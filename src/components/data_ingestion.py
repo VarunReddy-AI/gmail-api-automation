@@ -26,15 +26,12 @@ class DataIngestion:
 
         logging.info("entered the data ingestion method or component")
         try:
-            df = pd.read_csv(r"D:\Desktop/gmail-api-automation/artifacts/training_emails.csv")
-            df2 = pd.read_csv(r"D:\Desktop/gmail-api-automation/artifacts/test_labels_for_evaluation.csv")
-            # Select only IMPORTANT rows from df2
-            #important_df2 = df2[df2['label'] == 'IMPORTANT']
-
+            df = pd.read_csv(r"D:\Desktop/gmail-api-automation/artifacts/for_training.csv")
+            df2 = pd.read_csv(r'D:\Desktop/gmail-api-automation/artifacts/important_mails.csv')
             # Append rows
+            
+            df = df[["text", "lable"]]
             df = pd.concat([df, df2], ignore_index=True)
-            df = df[["text", "label"]]
-
             logging.info("Read the dataset as dataframe")
 
             os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok=True)
@@ -42,12 +39,12 @@ class DataIngestion:
             df.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
 
             logging.info("Train test split initiated")
-
+            # 44->19,2   43--> BEST TRAIN TEST SPLIT 
             train_set, test_set = train_test_split(
                 df, 
                 test_size=0.25, 
-                random_state=39,
-                stratify=df["label"]
+                random_state=43,
+                stratify=df["lable"]
                 )
 
             train_set.to_csv(self.ingestion_config.train_data_path, index=False, header=True)

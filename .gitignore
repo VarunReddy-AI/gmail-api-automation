@@ -8,6 +8,7 @@ data/
 artifacts/
 credentials.json
 token.json
+logs/
 # C extensions
 *.so
 
