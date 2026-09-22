@@ -21,7 +21,7 @@ I initially considered a more "clever" approach — a scheduled trigger (e.g., w
 
 ```mermaid
 flowchart TD
-    A[Gmail API: fetch all emails<br/>metadata - subject, sender, snippet] --> B[Manually label a subset<br/>in Excel: ['INFORMATION', 'PROMOTION', 'OFFICIAL', 'TRASH', 'IMPORTANT']
+    A[Gmail API: fetch all emails<br/>metadata - subject, sender, snippet] --> B[Manually label a subset<br/>in Excel: 'INFORMATION', 'PROMOTION', 'OFFICIAL', 'TRASH', 'IMPORTANT']
     B --> C[Train classifier on<br/>labeled subset<br/>class_weight='balanced']
     C --> D[Predict labels for the<br/>remaining unlabeled emails]
     D --> E[Re-verify predicted labels<br/>spot-check against real emails]
